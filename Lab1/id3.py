@@ -6,5 +6,5 @@ print(
     f"{dataset.shape[0]} records read from {DATASET_FILE}\n{dataset.shape[1]} attributes found"
 )
 print(dataset.head(10))
-
+print(dataset.Salva.value_counts())
 # implementar el algoritmo ID3 con la extensión para atributos numéricos
