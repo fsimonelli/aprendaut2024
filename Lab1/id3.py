@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-DATASET_FILE = "./pedro.csv"
+DATASET_FILE = "./formatted_weather_table.csv"
 
 dataset = pd.read_csv(DATASET_FILE, sep=",")
 
@@ -14,6 +14,9 @@ class Node(object):
 
     def add_child(self, obj):
         self.children.append(obj)
+    
+    def isLeaf(self):
+        return len(self.children) == 0
         
 # Entropy for boolean functions.
 def entropy(dataset, target):
@@ -30,29 +33,44 @@ def best_attribute(dataset, target, attributes):
         res = 0
         for value, count in dataset[attribute].value_counts().items():
             res += count*entropy(dataset.loc[dataset[attribute] == value], target)
-        #print(dataset.shape[0])
         entropies.append(res / dataset.shape[0])
     return entropies.index(min(entropies))
 
 def id3(dataset, target, attributes):
-    print("iter")
+    print(dataset)
     if len(attributes) == 0:
-        return dataset[target].value_counts().iloc[0]
-    if len(dataset[target].value_counts()) == 1:
-        return dataset[target].value_counts().iloc[0]
+        return Node(dataset[target].value_counts().index.tolist()[0])
+    #print(dataset[target].value_counts().index.tolist())
+    if len(dataset[target].value_counts().index.tolist()) == 1:
+        return Node(dataset[target].value_counts().index.tolist()[0])
     else :
         best = best_attribute(dataset, target, attributes)
-        tree = Node(best)
-        for value, count in dataset[atributos[best]].value_counts().items():
+        print(best_attribute(dataset, target, attributes))
+        tree = Node(attributes[best])
+        for value in dataset[attributes[best]].value_counts().index.tolist():
+            #print(dataset[atributos[best]].value_counts())
             new_attributes = attributes.copy()
-            new_attributes.remove(atributos[best])
-            print(attributes)
-            print(new_attributes)
-            #Estamos pasando mal el dataset
-            tree.add_child(id3(dataset[atributos[best]] == value, target, new_attributes))
+            new_attributes.remove(attributes[best])
+            #print(attributes)
+            #print(new_attributes)
+            #print(dataset.iloc[(dataset[atributos[best]] == value).values])
+            tree.add_child(id3((dataset.iloc[(dataset[attributes[best]] == value).values]).drop(columns=attributes[best]), target, new_attributes))
         return tree
     
-atributos = ['Dedicación','Dificultad','Horario','Humedad','Humor Doc']  
-#print('El mejor atributo es: ' + atributos[best_attribute(dataset, "Salva", atributos)])
+def printTree(node, i):
+    for j in range(0,i):
+        print("-", end = " ")
+    if (not node.isLeaf()):
+        print(node.data)
+        for child in node.children:
+            printTree(child, i+1)
+    else:
+        print(node.data)
 
-id3(dataset, "Salva", atributos)
+#atributos = ['Dedicación','Dificultad','Horario','Humedad','Humor Doc']  
+#print('El mejor atributo es: ' + atributos[best_attribute(dataset, "Salva", atributos)])
+atributos = ['Outlook','Temp.','Humidity','Wind']
+#print(dataset)
+#resTree = id3(dataset, "Salva", atributos)
+resTree = id3(dataset, "Decision", atributos)
+printTree(resTree, 0)
