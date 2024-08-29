@@ -4,21 +4,12 @@ import pprint as pprint
 
 TESTING_DATASET_FILE = "./formatted_weather_table.csv"
 PEDRO_DATASET_FILE = "./pedro.csv"
+CONTINUOUS_DATASET_FILE = "./solvency_table.csv"
 DATASET_FILE = "./lab1_dataset.csv"
+# Continuous attributes: time, age, wtkg, karnof, preanti, cd40, cd420, cd80, cd820
 
 pedro_dataset = pd.read_csv(PEDRO_DATASET_FILE, sep=",")
 testing_dataset = pd.read_csv(TESTING_DATASET_FILE, sep=",")
-
-class Node(object):
-    def __init__(self, data):
-        self.data = data
-        self.children = []
-
-    def add_child(self, obj):
-        self.children.append(obj)
-    
-    def isLeaf(self):
-        return len(self.children) == 0
         
 # Entropy for boolean functions.
 def entropy(dataset, target):
@@ -40,9 +31,9 @@ def best_attribute(dataset, target, attributes):
         entropies.append(res / dataset.shape[0])
     return attributes[entropies.index(min(entropies))]
 
-def id3(dataset, target, attributes):
+def id3(dataset, target, attributes, max_range_split):
     if len(attributes) == 0 or len(dataset[target].value_counts().index) == 1:
-        return dataset[target].iloc[0]
+        return dataset[target].value_counts().index[0]
     else :
         best = best_attribute(dataset, target, attributes)
         tree = {best: {}}
@@ -53,12 +44,14 @@ def id3(dataset, target, attributes):
             tree[best][value] = id3(dataset.loc[dataset[best] == value], target, new_attributes)
         return tree
 
-
 pedro_attributes = ["Dedicación", "Dificultad", "Horario", "Humedad", "Humor Doc"]
 pedro_target = "Salva"
 
 testing_attributes = ["Outlook", "Temp.", "Humidity", "Wind"]
 testing_target = "Decision"
+
+continuous_attributes = ['EBIT_over_A','ln_A_over_L','RE_over_A','FCF_over_A']
+continuous_target = "Solvency"
 
 pprint.pprint(id3(pedro_dataset, pedro_target, pedro_attributes))
 pprint.pprint(id3(testing_dataset, testing_target, testing_attributes))
