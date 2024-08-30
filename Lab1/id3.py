@@ -10,7 +10,58 @@ DATASET_FILE = "./lab1_dataset.csv"
 
 pedro_dataset = pd.read_csv(PEDRO_DATASET_FILE, sep=",")
 testing_dataset = pd.read_csv(TESTING_DATASET_FILE, sep=",")
+continuous_dataset = pd.read_csv(CONTINUOUS_DATASET_FILE, sep=",")
         
+def generate_every_pair_from_list(list):
+    #A generalizar
+    res = []
+    for i in range(0, len(list)):
+        for j in range(i+1, len(list)):
+            res.append([list[i], list[j]])
+    return res
+            
+#O(n^i)
+def get_splits(dataset, attribute, target):
+    min_entropy = 1
+    best_values = []
+    dataset = dataset.sort_values(by=attribute)
+    current_target = dataset[target][0]
+    dataset_size = dataset.shape[0]
+    candidate_splits = []
+    
+    for i in range(1,dataset_size):
+        if current_target != dataset[target].iloc[i]:
+            candidate_splits.append((dataset[attribute].iloc[i-1] + dataset[attribute].iloc[i])/2)
+            current_target = dataset[target].iloc[i]
+            
+    #splits = generate_every_pair_from_list(candidate_splits)
+    #Implementado para 2 rangos
+    for split in candidate_splits:
+        split_dataset = actually_split(dataset.copy(), attribute, split)
+        print(split_dataset)
+        aux_entropy = 0
+        
+        for value, count in split_dataset[attribute].value_counts().items():
+            aux_entropy += count*entropy(split_dataset.loc[split_dataset[attribute] == value], target)
+            aux_entropy = aux_entropy / split_dataset[attribute].shape[0]
+            
+        if (aux_entropy < min_entropy):
+            min_entropy = aux_entropy
+            best_values = split
+            
+    return (min_entropy,best_values)
+
+
+
+def actually_split(dataset, attribute, splits):
+    def discretize(x):
+        if(x < splits):
+            return '<' + str(splits)
+        else:
+            return '>' + str(splits)
+    dataset[attribute] = dataset[attribute].apply(discretize)
+    return dataset
+
 # Entropy for boolean functions.
 def entropy(dataset, target):
     values = dataset[target].value_counts()
@@ -24,18 +75,32 @@ def entropy(dataset, target):
 
 def best_attribute(dataset, target, attributes):
     entropies = []
+    continuous = {}
     for attribute in attributes:
-        res = 0
-        for value, count in dataset[attribute].value_counts().items():
-            res += count*entropy(dataset.loc[dataset[attribute] == value], target)
-        entropies.append(res / dataset.shape[0])
-    return attributes[entropies.index(min(entropies))]
+        # Continuous-Valued attribute
+        if dataset[attribute].value_counts().size > 5:
+            print(dataset[attribute].value_counts().size)
+            aux_entropy, best_split = get_splits(dataset, attribute, target)
+            entropies.append(aux_entropy)
+            continuous[attribute] = best_split
+        else :
+            res = 0
+            for value, count in dataset[attribute].value_counts().items():
+                res += count*entropy(dataset.loc[dataset[attribute] == value], target)
+            entropies.append(res / dataset.shape[0])
+            continuous[attribute] = None
+            
+    best_attribute = attributes[entropies.index(min(entropies))]
+    
+    if (continuous[best_attribute] is None):
+        return best_attribute, dataset
+    return best_attribute, actually_split(dataset, best_attribute, continuous[best_attribute])
 
-def id3(dataset, target, attributes, max_range_split):
+def id3(dataset, target, attributes):
     if len(attributes) == 0 or len(dataset[target].value_counts().index) == 1:
         return dataset[target].value_counts().index[0]
     else :
-        best = best_attribute(dataset, target, attributes)
+        best, dataset = best_attribute(dataset, target, attributes)
         tree = {best: {}}
         new_attributes = attributes.copy()
         new_attributes.remove(best)
@@ -51,10 +116,14 @@ testing_attributes = ["Outlook", "Temp.", "Humidity", "Wind"]
 testing_target = "Decision"
 
 continuous_attributes = ['EBIT_over_A','ln_A_over_L','RE_over_A','FCF_over_A']
-continuous_target = "Solvency"
+continuous_target = 'Solvency'
 
-pprint.pprint(id3(pedro_dataset, pedro_target, pedro_attributes))
-pprint.pprint(id3(testing_dataset, testing_target, testing_attributes))
+#pprint.pprint(id3(pedro_dataset, pedro_target, pedro_attributes))
+#pprint.pprint(id3(testing_dataset, testing_target, testing_attributes))
+
+pprint.pprint(id3(continuous_dataset, continuous_target, continuous_attributes))
+
+#print(actually_split(continuous_dataset, 'ln_A_over_L', get_splits(continuous_dataset, 'ln_A_over_L', continuous_target)[1]))
 
 # Used Panda Functions
 
@@ -66,3 +135,4 @@ pprint.pprint(id3(testing_dataset, testing_target, testing_attributes))
 # drop => https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.drop.html
 # shape => https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.shape.html
 # index => https://pandas.pydata.org/docs/reference/api/pandas.Index.html
+# apply => https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.apply.html
