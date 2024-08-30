@@ -23,9 +23,8 @@ def generate_every_pair_from_list(list):
 #O(n^i)
 def get_splits(dataset, attribute, target):
     min_entropy = 1
-    best_values = []
     dataset = dataset.sort_values(by=attribute)
-    current_target = dataset[target][0]
+    current_target = dataset[target].iloc[0]
     dataset_size = dataset.shape[0]
     candidate_splits = []
     
@@ -38,12 +37,10 @@ def get_splits(dataset, attribute, target):
     #Implementado para 2 rangos
     for split in candidate_splits:
         split_dataset = actually_split(dataset.copy(), attribute, split)
-        print(split_dataset)
         aux_entropy = 0
-        
         for value, count in split_dataset[attribute].value_counts().items():
             aux_entropy += count*entropy(split_dataset.loc[split_dataset[attribute] == value], target)
-            aux_entropy = aux_entropy / split_dataset[attribute].shape[0]
+        aux_entropy = aux_entropy / split_dataset.shape[0]
             
         if (aux_entropy < min_entropy):
             min_entropy = aux_entropy
@@ -78,8 +75,7 @@ def best_attribute(dataset, target, attributes):
     continuous = {}
     for attribute in attributes:
         # Continuous-Valued attribute
-        if dataset[attribute].value_counts().size > 5:
-            print(dataset[attribute].value_counts().size)
+        if attribute in continuous_attributes:
             aux_entropy, best_split = get_splits(dataset, attribute, target)
             entropies.append(aux_entropy)
             continuous[attribute] = best_split
@@ -94,7 +90,7 @@ def best_attribute(dataset, target, attributes):
     
     if (continuous[best_attribute] is None):
         return best_attribute, dataset
-    return best_attribute, actually_split(dataset, best_attribute, continuous[best_attribute])
+    return best_attribute, actually_split(dataset.copy(), best_attribute, continuous[best_attribute])
 
 def id3(dataset, target, attributes):
     if len(attributes) == 0 or len(dataset[target].value_counts().index) == 1:
@@ -118,12 +114,11 @@ testing_target = "Decision"
 continuous_attributes = ['EBIT_over_A','ln_A_over_L','RE_over_A','FCF_over_A']
 continuous_target = 'Solvency'
 
-#pprint.pprint(id3(pedro_dataset, pedro_target, pedro_attributes))
-#pprint.pprint(id3(testing_dataset, testing_target, testing_attributes))
+pprint.pprint(id3(pedro_dataset, pedro_target, pedro_attributes))
+
+pprint.pprint(id3(testing_dataset, testing_target, testing_attributes))
 
 pprint.pprint(id3(continuous_dataset, continuous_target, continuous_attributes))
-
-#print(actually_split(continuous_dataset, 'ln_A_over_L', get_splits(continuous_dataset, 'ln_A_over_L', continuous_target)[1]))
 
 # Used Panda Functions
 
