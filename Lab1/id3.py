@@ -14,6 +14,7 @@ DATASET_FILE = "./lab1_dataset.csv"
 pedro_dataset = pd.read_csv(PEDRO_DATASET_FILE, sep=",")
 testing_dataset = pd.read_csv(TESTING_DATASET_FILE, sep=",")
 continuous_dataset = pd.read_csv(CONTINUOUS_DATASET_FILE, sep=",")
+dataset = pd.read_csv(DATASET_FILE, sep=",")
         
 def generate_every_pair_from_list(list, max_range_splits):
     #A generalizar
@@ -29,6 +30,7 @@ def generate_every_pair_from_list(list, max_range_splits):
 def get_splits(dataset, feature, target, max_range_splits):
     min_entropy = 1
     dataset = dataset.sort_values(by=feature)
+    print(dataset[target])
     current_target = dataset[target].iloc[0]
     dataset_size = dataset.shape[0]
     candidate_splits = []
@@ -56,6 +58,7 @@ def get_splits(dataset, feature, target, max_range_splits):
     return (min_entropy,best_values)
 
 def actually_split(dataset, feature, split):
+    print(split)
     def discretize(x):
         if (len(split) == 2):
             if (x < split[1] and x >= split[0]):
@@ -119,31 +122,40 @@ def id3(dataset, target, features, max_range_splits):
     return  decision_tree
 
 
-
-
-
 pedro_features = ["Dedicación", "Dificultad", "Horario", "Humedad", "Humor Doc"]
 pedro_target = "Salva"
 
 testing_features = ["Outlook", "Temp.", "Humidity", "Wind"]
 testing_target = "Decision"
 
-continuous_features = ['EBIT_over_A','ln_A_over_L','RE_over_A','FCF_over_A']
-continuous_target = 'Solvency'
+solvency_continuous_features = ['EBIT_over_A','ln_A_over_L','RE_over_A','FCF_over_A']
+solvency_continuous_target = 'Solvency'
 
-pprint.pprint(id3(pedro_dataset, pedro_target, pedro_features, 2))
+continuous_features = ['time', 'age', 'wtkg', 'karnof', 'preanti', 'cd40', 'cd420', 'cd80', 'cd820']
+target = 'cid'
+features = ['time', 'trt', 'age', 'wtkg', 'hemo', 'homo', 'drugs', 'karnof',
+       'oprior', 'z30', 'zprior', 'preanti', 'race', 'gender', 'str2', 'strat',
+       'symptom', 'treat', 'offtrt', 'cd40', 'cd420', 'cd80', 'cd820']
 
-pprint.pprint(id3(testing_dataset, testing_target, testing_features, 2))
+print(features)
 
-pprint.pprint(id3(continuous_dataset, continuous_target, continuous_features, 2))
+pprint.pprint(id3(dataset, target, features, 2))
 
-X = continuous_dataset.drop('Solvency', axis=1) 
-y = continuous_dataset['Solvency']
+# pprint.pprint(id3(pedro_dataset, pedro_target, pedro_features, 2))
 
-clf = tree.DecisionTreeClassifier(criterion='entropy')
-clf = clf.fit(X, y)
+# pprint.pprint(id3(testing_dataset, testing_target, testing_features, 2))
 
-tree.plot_tree(clf)
+# pprint.pprint(id3(continuous_dataset, continuous_target, continuous_features, 3))
+
+# X = continuous_dataset.drop('Solvency', axis=1) 
+# y = continuous_dataset['Solvency']
+
+# plt.figure()
+# clf = tree.DecisionTreeClassifier(criterion='entropy')
+# clf = clf.fit(X, y)
+
+# tree.plot_tree(clf, class_names=['0', '1'])
+# plt.show()
 
 
 # Used Panda Functions
