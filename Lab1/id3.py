@@ -12,30 +12,34 @@ pedro_dataset = pd.read_csv(PEDRO_DATASET_FILE, sep=",")
 testing_dataset = pd.read_csv(TESTING_DATASET_FILE, sep=",")
 continuous_dataset = pd.read_csv(CONTINUOUS_DATASET_FILE, sep=",")
         
-def generate_every_pair_from_list(list):
+def generate_every_pair_from_list(list, max_range_splits):
     #A generalizar
     res = []
     for i in range(0, len(list)):
-        for j in range(i+1, len(list)):
-            res.append([list[i], list[j]])
+        if (max_range_splits == 3):
+            for j in range(i+1, len(list)):
+                res.append([list[i], list[j]])
+        res.append([list[i]])
     return res
             
 #O(n^i)
-def get_splits(dataset, attribute, target):
+def get_splits(dataset, attribute, target, max_range_splits):
     min_entropy = 1
     dataset = dataset.sort_values(by=attribute)
     current_target = dataset[target].iloc[0]
     dataset_size = dataset.shape[0]
     candidate_splits = []
+    best_values = []
     
+    # Finding splits
     for i in range(1,dataset_size):
         if current_target != dataset[target].iloc[i]:
             candidate_splits.append((dataset[attribute].iloc[i-1] + dataset[attribute].iloc[i])/2)
             current_target = dataset[target].iloc[i]
             
-    #splits = generate_every_pair_from_list(candidate_splits)
-    #Implementado para 2 rangos
-    for split in candidate_splits:
+    splits = generate_every_pair_from_list(candidate_splits, max_range_splits)
+    
+    for split in splits:
         split_dataset = actually_split(dataset.copy(), attribute, split)
         aux_entropy = 0
         for value, count in split_dataset[attribute].value_counts().items():
@@ -50,12 +54,14 @@ def get_splits(dataset, attribute, target):
 
 
 
-def actually_split(dataset, attribute, splits):
+def actually_split(dataset, attribute, split):
     def discretize(x):
-        if(x < splits):
-            return '<' + str(splits)
-        else:
-            return '>' + str(splits)
+        if (len(split) == 2):
+            if (x < split[1] and x >= split[0]):
+                return '[' + str(split[0]) + ',' + str(split[1]) + ']' 
+        if(x < split[0]):
+            return '<' + str(split[0])
+        return '>' + str(split[-1])
     dataset[attribute] = dataset[attribute].apply(discretize)
     return dataset
 
@@ -70,13 +76,13 @@ def entropy(dataset, target):
     else: 
         return -(p0)*np.log2(p0)
 
-def best_attribute(dataset, target, attributes):
+def best_attribute(dataset, target, attributes, max_range_splits):
     entropies = []
     continuous = {}
     for attribute in attributes:
         # Continuous-Valued attribute
         if attribute in continuous_attributes:
-            aux_entropy, best_split = get_splits(dataset, attribute, target)
+            aux_entropy, best_split = get_splits(dataset, attribute, target, max_range_splits)
             entropies.append(aux_entropy)
             continuous[attribute] = best_split
         else :
@@ -92,17 +98,17 @@ def best_attribute(dataset, target, attributes):
         return best_attribute, dataset
     return best_attribute, actually_split(dataset.copy(), best_attribute, continuous[best_attribute])
 
-def id3(dataset, target, attributes):
+def id3(dataset, target, attributes, max_range_splits):
     if len(attributes) == 0 or len(dataset[target].value_counts().index) == 1:
         return dataset[target].value_counts().index[0]
     else :
-        best, dataset = best_attribute(dataset, target, attributes)
+        best, dataset = best_attribute(dataset, target, attributes, max_range_splits)
         tree = {best: {}}
         new_attributes = attributes.copy()
         new_attributes.remove(best)
         
         for value in dataset[best].value_counts().index:
-            tree[best][value] = id3(dataset.loc[dataset[best] == value], target, new_attributes)
+            tree[best][value] = id3(dataset.loc[dataset[best] == value], target, new_attributes, max_range_splits)
         return tree
 
 pedro_attributes = ["Dedicación", "Dificultad", "Horario", "Humedad", "Humor Doc"]
@@ -114,11 +120,11 @@ testing_target = "Decision"
 continuous_attributes = ['EBIT_over_A','ln_A_over_L','RE_over_A','FCF_over_A']
 continuous_target = 'Solvency'
 
-pprint.pprint(id3(pedro_dataset, pedro_target, pedro_attributes))
+#pprint.pprint(id3(pedro_dataset, pedro_target, pedro_attributes))
 
-pprint.pprint(id3(testing_dataset, testing_target, testing_attributes))
+#pprint.pprint(id3(testing_dataset, testing_target, testing_attributes))
 
-pprint.pprint(id3(continuous_dataset, continuous_target, continuous_attributes))
+pprint.pprint(id3(continuous_dataset, continuous_target, continuous_attributes, 3))
 
 # Used Panda Functions
 
