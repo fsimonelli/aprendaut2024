@@ -67,11 +67,11 @@ def get_splits(dataset, feature, target, max_range_splits):
     splits = generate_every_pair_from_list(candidate_splits, max_range_splits)
  
     for split in splits:
-        split_dataset = discretize_dataset(dataset.copy(), feature, split)
+        splitted_dataset = split_dataset(dataset.copy(), feature, split)
         aux_entropy = 0
-        for value, count in split_dataset[feature].value_counts().items():
-            aux_entropy += count*entropy(split_dataset.loc[split_dataset[feature] == value], target)
-        aux_entropy = aux_entropy / split_dataset.shape[0]
+        for value, count in splitted_dataset[feature].value_counts().items():
+            aux_entropy += count*entropy(splitted_dataset.loc[splitted_dataset[feature] == value], target)
+        aux_entropy = aux_entropy / splitted_dataset.shape[0]
             
         if (aux_entropy < min_entropy):
             min_entropy = aux_entropy
@@ -79,9 +79,9 @@ def get_splits(dataset, feature, target, max_range_splits):
             
     return (min_entropy,best_values)
 
-def discretize_dataset(dataset, feature, split):
-    discretize = lambda x: ('[' + str(split[0]) + ',' + str(split[1]) + ']' if len(split) == 2 and split[0] <= x < split[1] else
-                            '<' + str(split[0]) if x < split[0] else
+def split_dataset(dataset, feature, split):
+    discretize = lambda x: ('(' + str(split[0]) + ',' + str(split[1]) + ']' if len(split) == 2 and split[0] < x <= split[1] else
+                            '<=' + str(split[0]) if x <= split[0] else
                             '>' + str(split[-1])
                         )
     dataset[feature] = dataset[feature].apply(discretize)
@@ -116,68 +116,71 @@ def best_feature(dataset, target, features, continuous_features, max_range_split
     
     if not (best_feature in continuous):
         return best_feature, dataset
-    return best_feature, discretize_dataset(dataset.copy(), best_feature, continuous[best_feature])
+    return best_feature, split_dataset(dataset.copy(), best_feature, continuous[best_feature])
 
 def id3(dataset, target, features, max_range_splits, intact_dataset):
     if len(features) == 0 or len(dataset[target].value_counts().index) == 1:
         # value_counts[0] is either the only or the most common target value left in the current dataset.
         return dataset[target].value_counts().index[0] 
-    best, dataset = best_feature(dataset, target, features, continuous_features, max_range_splits)
+    
+    best, dataset = best_feature(dataset, target, features, solvency_features, max_range_splits)
     decision_tree = {best: {}}
+    
     new_features = features.copy()
     new_features.remove(best)
-    if(best in continuous_features):
-        auxDataset = dataset
-    else:
-        auxDataset = intact_dataset
+    
     for value in dataset[best].value_counts().index:
+        #if not (best in continuous_features):
         examples = dataset.loc[dataset[best] == value]
         if (len(examples) == 0):
             decision_tree[best][value] = dataset.value_counts().index[0]
         else:
             decision_tree[best][value] = id3(examples, target, new_features, max_range_splits, intact_dataset)
+        # else:
+        #    a=a
+            #Simil a classify_instance
     return  decision_tree
 
 def classify_instance(tree, instance):
-    if isinstance(tree, (int, np.int64)):
-        return tree
-    attribute = next(iter(tree))
-    instance_value = instance[attribute]
-    subtree = None
-    print('Attribute: ', attribute)
-    print('Instance value: ', instance_value)
-    for condition, subtree_or_value in tree[attribute].items():
-        if(isinstance(condition,str)):
-            operator = condition[0]  # '<' or '>'
-            threshold = float(condition[1:])  # numeric threshold
-            if (operator == '<' and instance_value <= threshold) or \
-                (operator == '>' and instance_value > threshold):
-                subtree = subtree_or_value
-                break
+    if isinstance(tree, dict):
+        feature, branches = next(iter(tree.items()))
+        feature_value = instance[feature]
+        if isinstance(branches, dict):
+            for condition, subtree in branches.items():
+                if (isEqual(instance[feature], condition)):
+                    return classify_instance(subtree, instance)
         else:
-            if (instance_value == condition):
-                """ print('Attribute: ', attribute)
-                print('Instance value: ', instance_value)
-                print('Condition: ', condition) """
-                subtree = subtree_or_value
-                break
-    return classify_instance(subtree, instance)
+            return branches
+    else:
+        return tree
+
+def isEqual(instance_value, dataset_value):
+    if '(' in dataset_value:
+        lower_bound, upper_bound = dataset_value[1:-1].split(',')
+        return float(lower_bound) <= instance_value < float(upper_bound)
+    elif '<=' in dataset_value:
+        return instance_value <= float(dataset_value[2:])
+    elif '>' in dataset_value:
+        return instance_value > float(dataset_value[1:])
+    
+    return instance_value == dataset_value
+
+
 
 # print(datetime.now() - startTime)
-current_dataset = dataset.copy()
-tree = id3(current_dataset, target, features, 2, current_dataset)
+current_dataset = solvency_dataset.copy()
+tree = id3(solvency_dataset, solvency_target, solvency_features, 3, solvency_dataset)
 pprint.pprint(tree)
-current_dataset.drop('cid', axis='columns')
-#print(classify_instance(tree, dataset.iloc[135]), "vs", dataset.iloc[135][target])
-""" res = 0
+
+current_dataset.drop('Solvency', axis='columns')
+res = 0
 for i in range(0,current_dataset.shape[0]):
     #print(classify_instance(tree, continuous_dataset.iloc[i]), "vs", continuous_dataset.iloc[i][solvency_continuous_target])
     print(i)
-    if classify_instance(tree, current_dataset.iloc[i]) == current_dataset.iloc[i][target]:
+    if classify_instance(tree, current_dataset.iloc[i]) == current_dataset.iloc[i][solvency_target]:
         res = res + 1 
 # pprint.pprint(id3(weather_dataset, weather_target, weather_features, 2))
-print((res/current_dataset.shape[0])*100,"%") """
-
+print((res/current_dataset.shape[0])*100,"%")
 
 """ X = dataset.drop('cid', axis=1) 
 y = dataset['cid']
