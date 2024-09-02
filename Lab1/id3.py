@@ -43,11 +43,11 @@ def generate_every_pair_from_list(list, max_range_splits):
             for j in range(i+1, len(list)):
                 res.append([list[i], list[j]])
         res.append([list[i]])
-    if(len(res) > 500):
+    """ if(len(res) > 500):
         sample = random.sample(res,500)
     else:
-        sample = res
-    return sample
+        sample = res """
+    return res
             
 #O(n^i)
 def get_splits(dataset, feature, target, max_range_splits):
@@ -63,8 +63,10 @@ def get_splits(dataset, feature, target, max_range_splits):
         if current_target != dataset[target].iloc[i]:
             candidate_splits.append((dataset[feature].iloc[i-1] + dataset[feature].iloc[i])/2)
             current_target = dataset[target].iloc[i]
-
-    splits = generate_every_pair_from_list(candidate_splits, max_range_splits)
+    sample = candidate_splits
+    if len(candidate_splits) > 50:
+        sample = random.sample(candidate_splits, 50)
+    splits = generate_every_pair_from_list(sample, max_range_splits)
  
     for split in splits:
         splitted_dataset = split_dataset(dataset.copy(), feature, split)
@@ -122,23 +124,33 @@ def id3(dataset, target, features, max_range_splits, intact_dataset):
     if len(features) == 0 or len(dataset[target].value_counts().index) == 1:
         # value_counts[0] is either the only or the most common target value left in the current dataset.
         return dataset[target].value_counts().index[0] 
-    
-    best, dataset = best_feature(dataset, target, features, solvency_features, max_range_splits)
+    aux = dataset.copy()
+    best, dataset = best_feature(dataset, target, features, continuous_features, max_range_splits)
     decision_tree = {best: {}}
     
     new_features = features.copy()
     new_features.remove(best)
+
+    if best in continuous_features:
+        aux_dataset = dataset.copy()
+    else :
+        aux_dataset = intact_dataset.copy()
     
     for value in dataset[best].value_counts().index:
         #if not (best in continuous_features):
-        examples = dataset.loc[dataset[best] == value]
-        if (len(examples) == 0):
-            decision_tree[best][value] = dataset.value_counts().index[0]
-        else:
+        #if not (best in continuous_features):
+            examples = dataset.loc[dataset[best] == value]
             decision_tree[best][value] = id3(examples, target, new_features, max_range_splits, intact_dataset)
-        # else:
-        #    a=a
-            #Simil a classify_instance
+        #else:
+            """ arr = []
+            for i in range(0, aux.shape[0]):
+                arr.append((isEqual(aux.iloc[i][best], dataset.iloc[i][best]))  )
+            examples = aux.iloc[arr]
+            print(len(examples))
+            if (len(examples) == 0):
+                decision_tree[best][value] = dataset.value_counts().index[0]
+            else:
+                decision_tree[best][value] = id3(examples, target, new_features, max_range_splits, intact_dataset) """
     return  decision_tree
 
 def classify_instance(tree, instance):
@@ -147,51 +159,47 @@ def classify_instance(tree, instance):
         feature_value = instance[feature]
         if isinstance(branches, dict):
             for condition, subtree in branches.items():
-                if (isEqual(instance[feature], condition)):
+                if (isEqual(feature_value, condition)):
                     return classify_instance(subtree, instance)
+                
+            return 
         else:
             return branches
     else:
         return tree
 
 def isEqual(instance_value, dataset_value):
-    if '(' in dataset_value:
-        lower_bound, upper_bound = dataset_value[1:-1].split(',')
-        return float(lower_bound) <= instance_value < float(upper_bound)
-    elif '<=' in dataset_value:
-        return instance_value <= float(dataset_value[2:])
-    elif '>' in dataset_value:
-        return instance_value > float(dataset_value[1:])
-    
+    if isinstance(dataset_value, str):
+        if '(' in dataset_value:
+            lower_bound, upper_bound = dataset_value[1:-1].split(',')
+            return float(lower_bound) <= instance_value < float(upper_bound)
+        elif '<=' in dataset_value:
+            return instance_value <= float(dataset_value[2:])
+        elif '>' in dataset_value:
+            return instance_value > float(dataset_value[1:])
     return instance_value == dataset_value
 
 
+train_dataset = dataset.iloc[0:1711]
+test_dataset = dataset.iloc[1711:]
 
-# print(datetime.now() - startTime)
-current_dataset = solvency_dataset.copy()
-tree = id3(solvency_dataset, solvency_target, solvency_features, 3, solvency_dataset)
+
+
+current_dataset = test_dataset.copy()
+
+tree = id3(train_dataset, target, features, 3, dataset)
 pprint.pprint(tree)
 
-current_dataset.drop('Solvency', axis='columns')
 res = 0
 for i in range(0,current_dataset.shape[0]):
     #print(classify_instance(tree, continuous_dataset.iloc[i]), "vs", continuous_dataset.iloc[i][solvency_continuous_target])
     print(i)
-    if classify_instance(tree, current_dataset.iloc[i]) == current_dataset.iloc[i][solvency_target]:
+    if classify_instance(tree, current_dataset.iloc[i]) == current_dataset.iloc[i][target]:
         res = res + 1 
 # pprint.pprint(id3(weather_dataset, weather_target, weather_features, 2))
 print((res/current_dataset.shape[0])*100,"%")
 
-""" X = dataset.drop('cid', axis=1) 
-y = dataset['cid']
-
-plt.figure()
-clf = tree.DecisionTreeClassifier(criterion='entropy')
-clf = clf.fit(X, y)
-
-tree.plot_tree(clf, class_names=['0', '1'])
-plt.show() """
-
+print(datetime.now() - startTime)
 
 # Used Panda Functions
 
