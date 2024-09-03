@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import pprint as pprint
 import random
 
 DATASET_FILE = "./lab1_dataset.csv"
@@ -16,7 +15,7 @@ features = ['time', 'trt', 'age', 'wtkg', 'hemo', 'homo', 'drugs', 'karnof',
 def init():
     return dataset, features, continuous_features, target
 
-def generate_every_pair_from_list(list, max_range_splits):
+def generate_combinations(list, max_range_splits):
     res = []
     for i in range(0, len(list)):
         if (max_range_splits == 3):
@@ -27,35 +26,37 @@ def generate_every_pair_from_list(list, max_range_splits):
             
 #O(n^i)
 def get_splits(dataset, feature, target, max_range_splits):
-    min_entropy = 2
+    min_conditional_entropy = 2
     dataset = dataset.sort_values(by=feature)
     current_target = dataset[target].iloc[0]
     dataset_size = dataset.shape[0]
     candidate_splits = []
-    best_values = []
+    best_splits = []
     
     # Finding splits
     for i in range(1, dataset_size):
         if current_target != dataset[target].iloc[i]:
             candidate_splits.append((dataset[feature].iloc[i-1] + dataset[feature].iloc[i])/2)
             current_target = dataset[target].iloc[i]
+    
     sample = candidate_splits
     if len(candidate_splits) > 50:
         sample = random.sample(candidate_splits, 50)
-    splits = generate_every_pair_from_list(sample, max_range_splits)
+    
+    splits = generate_combinations(sample, max_range_splits)
  
     for split in splits:
         splitted_dataset = split_dataset(dataset.copy(), feature, split)
-        aux_entropy = 0
+        aux_conditional_entropy = 0
         for value, count in splitted_dataset[feature].value_counts().items():
-            aux_entropy += count*entropy(splitted_dataset.loc[splitted_dataset[feature] == value], target)
-        aux_entropy = aux_entropy / splitted_dataset.shape[0]
+            aux_conditional_entropy += count*entropy(splitted_dataset.loc[splitted_dataset[feature] == value], target)
+        aux_conditional_entropy = aux_conditional_entropy / splitted_dataset.shape[0]
             
-        if (aux_entropy < min_entropy):
-            min_entropy = aux_entropy
-            best_values = split
+        if (aux_conditional_entropy < min_conditional_entropy):
+            min_conditional_entropy = aux_conditional_entropy
+            best_splits = split
             
-    return (min_entropy,best_values)
+    return (min_conditional_entropy, best_splits)
 
 def split_dataset(dataset, feature, split):
     discretize = lambda x: ('(' + str(split[0]) + ',' + str(split[1]) + ']' if len(split) == 2 and split[0] < x <= split[1] else
@@ -77,20 +78,20 @@ def entropy(dataset, target):
         return -(p0)*np.log2(p0)
 
 def best_feature(dataset, target, features, continuous_features, max_range_splits):
-    entropies = []
+    conditional_entropies = []
     continuous = {}
     for feature in features:
         # Continuous-Valued feature 
         if feature in continuous_features:
             aux_entropy, best_split = get_splits(dataset, feature, target, max_range_splits)
-            entropies.append(aux_entropy)
+            conditional_entropies.append(aux_entropy)
             continuous[feature] = best_split
         else :
             res = 0
             for value, count in dataset[feature].value_counts().items():
                 res += count*entropy(dataset.loc[dataset[feature] == value], target)
-            entropies.append(res / dataset.shape[0])
-    best_feature = features[entropies.index(min(entropies))]
+            conditional_entropies.append(res / dataset.shape[0])
+    best_feature = features[conditional_entropies.index(min(conditional_entropies))]
     
     if not (best_feature in continuous):
         return best_feature, dataset
@@ -111,6 +112,7 @@ def id3(dataset, target, features, continuous_features, max_range_splits, intact
         aux_dataset = dataset.copy()
     else :
         aux_dataset = intact_dataset.copy()
+    
     for value in aux_dataset[best].value_counts().index:
         if not (best in continuous_features):
             examples = dataset.copy().loc[dataset[best] == value]
@@ -169,22 +171,18 @@ def test_instances(tree, dataset):
     return (res/dataset.shape[0])*100
 
 
-#random.seed(59)
-#train_ds, test_ds = split_into_train_test(dataset, 0.8)
-#tree = id3(train_ds, target, features, 2, train_ds)
-#test_instances(tree, test_ds)
+train_dataset = dataset.iloc[0:1711]
+test_dataset = dataset.iloc[1711:]
+current_dataset = test_dataset.copy()
 
+tree = id3(train_dataset, target, features, continuous_features, 2, dataset)
+#pprint.pprint(tree)
 
-
-
-# Used Panda Functions
-
-# read_csv
-# value_counts => https://pandas.pydata.org/docs/reference/api/pandas.Series.value_counts.html
-# items => https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.items.html
-# loc => https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.loc.html
-# iloc => https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.iloc.html
-# drop => https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.drop.html
-# shape => https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.shape.html
-# index => https://pandas.pydata.org/docs/reference/api/pandas.Index.html
-# apply => https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.apply.html
+res = 0
+for i in range(0,current_dataset.shape[0]):
+    #print(classify_instance(tree, continuous_dataset.iloc[i]), "vs", continuous_dataset.iloc[i][solvency_continuous_target])
+    #print(i)
+    if classify_instance(tree, current_dataset.iloc[i]) == current_dataset.iloc[i][target]:
+        res = res + 1 
+    # pprint.pprint(id3(weather_dataset, weather_target, weather_features, 2))
+print((res/current_dataset.shape[0])*100)
