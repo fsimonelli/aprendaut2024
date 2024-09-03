@@ -46,7 +46,7 @@ def get_splits(dataset, feature, target, max_range_splits):
     splits = generate_combinations(sample, max_range_splits)
  
     for split in splits:
-        splitted_dataset = split_dataset(dataset.copy(), feature, split)
+        splitted_dataset = split_dataset(dataset, feature, split)
         aux_conditional_entropy = 0
         for value, count in splitted_dataset[feature].value_counts().items():
             aux_conditional_entropy += count*entropy(splitted_dataset.loc[splitted_dataset[feature] == value], target)
@@ -59,13 +59,14 @@ def get_splits(dataset, feature, target, max_range_splits):
     return (min_conditional_entropy, best_splits)
 
 def split_dataset(dataset, feature, split):
+    dataset_copy = dataset.copy()
     discretize = lambda x: ('(' + str(split[0]) + ',' + str(split[1]) + ']' if len(split) == 2 and split[0] < x <= split[1] else
                             '<=' + str(split[0]) if x <= split[0] else
                             '>' + str(split[-1])
                         )
-    dataset[feature] = dataset[feature].apply(discretize)
-    return dataset
-
+    dataset_copy[feature] = dataset_copy[feature].apply(discretize)
+    return dataset_copy
+    
 # Entropy for boolean functions.
 def entropy(dataset, target):
     values = dataset[target].value_counts()
@@ -94,42 +95,34 @@ def best_feature(dataset, target, features, continuous_features, max_range_split
     best_feature = features[conditional_entropies.index(min(conditional_entropies))]
     
     if not (best_feature in continuous):
-        return best_feature, dataset
-    return best_feature, split_dataset(dataset.copy(), best_feature, continuous[best_feature])
+        return best_feature, None
+    return best_feature, continuous[best_feature]
 
 def id3(dataset, target, features, continuous_features, max_range_splits, intact_dataset):
     if len(features) == 0 or len(dataset[target].value_counts().index) == 1:
         # value_counts[0] is either the only or the most common target value left in the current dataset.
         return dataset[target].value_counts().index[0] 
-    aux = dataset.copy()
-    best, dataset = best_feature(dataset, target, features, continuous_features, max_range_splits)
+ 
+    best, best_splits = best_feature(dataset, target, features, continuous_features, max_range_splits)
     decision_tree = {best: {}}
     
     new_features = features.copy()
     new_features.remove(best)
-
-    if best in continuous_features:
-        aux_dataset = dataset.copy()
-    else :
-        aux_dataset = intact_dataset.copy()
     
-    for value in aux_dataset[best].value_counts().index:
-        if not (best in continuous_features):
-            examples = dataset.copy().loc[dataset[best] == value]
-            if (len(examples) == 0):
-                decision_tree[best][value] = dataset[target].value_counts().index[0]
-            else:
-                decision_tree[best][value] = id3(examples, target, new_features, continuous_features, max_range_splits, intact_dataset)
+    original_dataset = intact_dataset
+    
+    if best_splits:
+        original_dataset = split_dataset(intact_dataset, best, best_splits)
+        dataset = split_dataset(dataset, best, best_splits)
+        
+    for value in original_dataset[best].value_counts().index:
+        examples = dataset.loc[dataset[best] == value]
+        if (len(examples) == 0):
+            decision_tree[best][value] = original_dataset.loc[original_dataset[best] == value][target].value_counts().index[0]
         else:
-            arr = []
-            for i in range(0, aux.shape[0]):
-                arr.append(isEqual(aux.iloc[i][best], value))
-            examples = aux.copy().iloc[arr]
-            if (len(examples) == 0):
-                decision_tree[best][value] = dataset.value_counts().index[0]
-            else:
-                decision_tree[best][value] = id3(examples, target, new_features, continuous_features, max_range_splits, intact_dataset)
-    return  decision_tree
+            decision_tree[best][value] = id3(examples, target, new_features, continuous_features, max_range_splits, intact_dataset)
+    
+    return decision_tree
 
 def classify_instance(tree, instance):
     if isinstance(tree, dict):
