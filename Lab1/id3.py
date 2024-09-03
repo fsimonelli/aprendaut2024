@@ -1,12 +1,7 @@
 import pandas as pd
 import numpy as np
 import pprint as pprint
-from sklearn.tree import DecisionTreeClassifier, plot_tree
-from sklearn import tree
-from datetime import datetime
 import random
-
-startTime = datetime.now()
 
 DATASET_FILE = "./lab1_dataset.csv"
 
@@ -98,7 +93,7 @@ def best_feature(dataset, target, features, continuous_features, max_range_split
         return best_feature, dataset
     return best_feature, split_dataset(dataset.copy(), best_feature, continuous[best_feature])
 
-def id3(dataset, target, features, max_range_splits, intact_dataset):
+def id3(dataset, target, features, continuous_features, max_range_splits, intact_dataset):
     if len(features) == 0 or len(dataset[target].value_counts().index) == 1:
         # value_counts[0] is either the only or the most common target value left in the current dataset.
         return dataset[target].value_counts().index[0] 
@@ -119,7 +114,7 @@ def id3(dataset, target, features, max_range_splits, intact_dataset):
             if (len(examples) == 0):
                 decision_tree[best][value] = dataset[target].value_counts().index[0]
             else:
-                decision_tree[best][value] = id3(examples, target, new_features, max_range_splits, intact_dataset)
+                decision_tree[best][value] = id3(examples, target, new_features, continuous_features, max_range_splits, intact_dataset)
         else:
             arr = []
             for i in range(0, aux.shape[0]):
@@ -128,7 +123,7 @@ def id3(dataset, target, features, max_range_splits, intact_dataset):
             if (len(examples) == 0):
                 decision_tree[best][value] = dataset.value_counts().index[0]
             else:
-                decision_tree[best][value] = id3(examples, target, new_features, max_range_splits, intact_dataset)
+                decision_tree[best][value] = id3(examples, target, new_features, continuous_features, max_range_splits, intact_dataset)
     return  decision_tree
 
 def classify_instance(tree, instance):
@@ -139,8 +134,6 @@ def classify_instance(tree, instance):
             for condition, subtree in branches.items():
                 if (isEqual(feature_value, condition)):
                     return classify_instance(subtree, instance)
-                
-            #return 
         else:
             return branches
     else:
@@ -170,17 +163,14 @@ def test_instances(tree, dataset):
     for i in range(0,dataset.shape[0]):
         if classify_instance(tree, dataset.iloc[i]) == dataset.iloc[i][target]:
             res = res + 1 
-    print('Acierto: ',(res/dataset.shape[0])*100, '%')
+    return (res/dataset.shape[0])*100
 
 
-random.seed(59)
-train_ds, test_ds = split_into_train_test(dataset, 0.8)
-tree = id3(train_ds, target, features, 2, train_ds)
-test_instances(tree, test_ds)
+#random.seed(59)
+#train_ds, test_ds = split_into_train_test(dataset, 0.8)
+#tree = id3(train_ds, target, features, 2, train_ds)
+#test_instances(tree, test_ds)
 
-
-
-print(datetime.now() - startTime)
 
 
 
