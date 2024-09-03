@@ -3,31 +3,14 @@ import numpy as np
 import pprint as pprint
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn import tree
-import matplotlib.pyplot as plt
 from datetime import datetime
-import json
 import random
 
 startTime = datetime.now()
 
-WEATHER_DATASET_FILE = "./formatted_weather_table.csv"
-PEDRO_DATASET_FILE = "./pedro.csv"
-SOLVENCY_DATASET_FILE = "./solvency_table.csv"
 DATASET_FILE = "./lab1_dataset.csv"
 
-pedro_dataset = pd.read_csv(PEDRO_DATASET_FILE, sep=",")
-weather_dataset = pd.read_csv(WEATHER_DATASET_FILE, sep=",")
-solvency_dataset = pd.read_csv(SOLVENCY_DATASET_FILE, sep=",")
 dataset = pd.read_csv(DATASET_FILE, sep=",")
-
-pedro_features = ["Dedicación", "Dificultad", "Horario", "Humedad", "Humor Doc"]
-pedro_target = "Salva"
-
-weather_features = ["Outlook", "Temp.", "Humidity", "Wind"]
-weather_target = "Decision"
-
-solvency_features = ['EBIT_over_A','ln_A_over_L','RE_over_A','FCF_over_A']
-solvency_target = 'Solvency'
 
 continuous_features = ['time', 'age', 'wtkg', 'karnof', 'preanti', 'cd40', 'cd420', 'cd80', 'cd820']
 target = 'cid'
@@ -36,17 +19,12 @@ features = ['time', 'trt', 'age', 'wtkg', 'hemo', 'homo', 'drugs', 'karnof',
        'symptom', 'treat', 'offtrt', 'cd40', 'cd420', 'cd80', 'cd820']
         
 def generate_every_pair_from_list(list, max_range_splits):
-    #A generalizar
     res = []
     for i in range(0, len(list)):
         if (max_range_splits == 3):
             for j in range(i+1, len(list)):
                 res.append([list[i], list[j]])
         res.append([list[i]])
-    """ if(len(res) > 500):
-        sample = random.sample(res,500)
-    else:
-        sample = res """
     return res
             
 #O(n^i)
@@ -135,22 +113,22 @@ def id3(dataset, target, features, max_range_splits, intact_dataset):
         aux_dataset = dataset.copy()
     else :
         aux_dataset = intact_dataset.copy()
-    
-    for value in dataset[best].value_counts().index:
-        #if not (best in continuous_features):
-        #if not (best in continuous_features):
-            examples = dataset.loc[dataset[best] == value]
-            decision_tree[best][value] = id3(examples, target, new_features, max_range_splits, intact_dataset)
-        #else:
-            """ arr = []
+    for value in aux_dataset[best].value_counts().index:
+        if not (best in continuous_features):
+            examples = dataset.copy().loc[dataset[best] == value]
+            if (len(examples) == 0):
+                decision_tree[best][value] = dataset[target].value_counts().index[0]
+            else:
+                decision_tree[best][value] = id3(examples, target, new_features, max_range_splits, intact_dataset)
+        else:
+            arr = []
             for i in range(0, aux.shape[0]):
-                arr.append((isEqual(aux.iloc[i][best], dataset.iloc[i][best]))  )
-            examples = aux.iloc[arr]
-            print(len(examples))
+                arr.append(isEqual(aux.iloc[i][best], value))
+            examples = aux.copy().iloc[arr]
             if (len(examples) == 0):
                 decision_tree[best][value] = dataset.value_counts().index[0]
             else:
-                decision_tree[best][value] = id3(examples, target, new_features, max_range_splits, intact_dataset) """
+                decision_tree[best][value] = id3(examples, target, new_features, max_range_splits, intact_dataset)
     return  decision_tree
 
 def classify_instance(tree, instance):
@@ -162,7 +140,7 @@ def classify_instance(tree, instance):
                 if (isEqual(feature_value, condition)):
                     return classify_instance(subtree, instance)
                 
-            return 
+            #return 
         else:
             return branches
     else:
@@ -179,27 +157,32 @@ def isEqual(instance_value, dataset_value):
             return instance_value > float(dataset_value[1:])
     return instance_value == dataset_value
 
+# train_size is a float between 0 and 1
+def split_into_train_test(dataset, train_size):
+    dataset_size = dataset.shape[0]
+    train_dataset = dataset.iloc[0:int(dataset_size*train_size)]
+    testing_dataset = dataset.iloc[int(dataset_size*train_size):]
+    return train_dataset, testing_dataset
+    
 
-train_dataset = dataset.iloc[0:1711]
-test_dataset = dataset.iloc[1711:]
+def test_instances(tree, dataset):
+    res = 0
+    for i in range(0,dataset.shape[0]):
+        if classify_instance(tree, dataset.iloc[i]) == dataset.iloc[i][target]:
+            res = res + 1 
+    print('Acierto: ',(res/dataset.shape[0])*100, '%')
 
 
+random.seed(59)
+train_ds, test_ds = split_into_train_test(dataset, 0.8)
+tree = id3(train_ds, target, features, 2, train_ds)
+test_instances(tree, test_ds)
 
-current_dataset = test_dataset.copy()
 
-tree = id3(train_dataset, target, features, 3, dataset)
-pprint.pprint(tree)
-
-res = 0
-for i in range(0,current_dataset.shape[0]):
-    #print(classify_instance(tree, continuous_dataset.iloc[i]), "vs", continuous_dataset.iloc[i][solvency_continuous_target])
-    print(i)
-    if classify_instance(tree, current_dataset.iloc[i]) == current_dataset.iloc[i][target]:
-        res = res + 1 
-# pprint.pprint(id3(weather_dataset, weather_target, weather_features, 2))
-print((res/current_dataset.shape[0])*100,"%")
 
 print(datetime.now() - startTime)
+
+
 
 # Used Panda Functions
 
