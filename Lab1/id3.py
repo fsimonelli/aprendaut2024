@@ -12,7 +12,10 @@ target = 'cid'
 features = ['time', 'trt', 'age', 'wtkg', 'hemo', 'homo', 'drugs', 'karnof',
        'oprior', 'z30', 'zprior', 'preanti', 'race', 'gender', 'str2', 'strat',
        'symptom', 'treat', 'offtrt', 'cd40', 'cd420', 'cd80', 'cd820']
-        
+
+def init():
+    return dataset, features, continuous_features, target
+
 def generate_every_pair_from_list(list, max_range_splits):
     res = []
     for i in range(0, len(list)):
