@@ -163,18 +163,37 @@ def test_instances(tree, dataset):
     return (res/dataset.shape[0])*100
 
 
-train_dataset = dataset.iloc[0:1711]
-test_dataset = dataset.iloc[1711:]
-current_dataset = test_dataset.copy()
+def calculate_precision(tree, dataset, target):
+    true_positive = 0
+    false_positive = 0
+    for i in range(dataset.shape[0]):
+        prediction = classify_instance(tree, dataset.iloc[i])
+        actual = dataset.iloc[i][target]
+        if prediction == 1 and actual == 1:
+            true_positive += 1
+        elif prediction == 1 and actual == 0:
+            false_positive += 1
+    if true_positive + false_positive == 0:
+        return 0
+    return (true_positive / (true_positive + false_positive)) * 100
 
-tree = id3(train_dataset, target, features, continuous_features, 2, dataset)
-#pprint.pprint(tree)
+def calculate_recall(tree, dataset, target):
+    true_positive = 0
+    false_negative = 0
+    for i in range(dataset.shape[0]):
+        prediction = classify_instance(tree, dataset.iloc[i])
+        actual = dataset.iloc[i][target]
+        if prediction == 1 and actual == 1:
+            true_positive += 1
+        elif prediction == 0 and actual == 1:
+            false_negative += 1
+    if true_positive + false_negative == 0:
+        return 0
+    return (true_positive / (true_positive + false_negative)) * 100
 
-res = 0
-for i in range(0,current_dataset.shape[0]):
-    #print(classify_instance(tree, continuous_dataset.iloc[i]), "vs", continuous_dataset.iloc[i][solvency_continuous_target])
-    #print(i)
-    if classify_instance(tree, current_dataset.iloc[i]) == current_dataset.iloc[i][target]:
-        res = res + 1 
-    # pprint.pprint(id3(weather_dataset, weather_target, weather_features, 2))
-print((res/current_dataset.shape[0])*100)
+def calculate_f1_score(tree, dataset, target):
+    precision = calculate_precision(tree, dataset, target)
+    recall = calculate_recall(tree, dataset, target)
+    if precision + recall == 0:
+        return 0
+    return (2 * precision * recall) / (precision + recall)
