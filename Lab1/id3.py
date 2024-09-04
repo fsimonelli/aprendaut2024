@@ -83,8 +83,8 @@ def best_feature(dataset, target, features, continuous_features, max_range_split
     for feature in features:
         # Continuous-Valued feature 
         if feature in continuous_features:
-            aux_entropy, best_split = get_splits(dataset, feature, target, max_range_splits)
-            conditional_entropies.append(aux_entropy)
+            aux_conditional_entropy, best_split = get_splits(dataset, feature, target, max_range_splits)
+            conditional_entropies.append(aux_conditional_entropy)
             continuous[feature] = best_split
         else :
             res = 0
@@ -161,39 +161,3 @@ def test_instances(tree, dataset):
         if classify_instance(tree, dataset.iloc[i]) == dataset.iloc[i][target]:
             res = res + 1 
     return (res/dataset.shape[0])*100
-
-
-def calculate_precision(tree, dataset, target):
-    true_positive = 0
-    false_positive = 0
-    for i in range(dataset.shape[0]):
-        prediction = classify_instance(tree, dataset.iloc[i])
-        actual = dataset.iloc[i][target]
-        if prediction == 1 and actual == 1:
-            true_positive += 1
-        elif prediction == 1 and actual == 0:
-            false_positive += 1
-    if true_positive + false_positive == 0:
-        return 0
-    return (true_positive / (true_positive + false_positive)) * 100
-
-def calculate_recall(tree, dataset, target):
-    true_positive = 0
-    false_negative = 0
-    for i in range(dataset.shape[0]):
-        prediction = classify_instance(tree, dataset.iloc[i])
-        actual = dataset.iloc[i][target]
-        if prediction == 1 and actual == 1:
-            true_positive += 1
-        elif prediction == 0 and actual == 1:
-            false_negative += 1
-    if true_positive + false_negative == 0:
-        return 0
-    return (true_positive / (true_positive + false_negative)) * 100
-
-def calculate_f1_score(tree, dataset, target):
-    precision = calculate_precision(tree, dataset, target)
-    recall = calculate_recall(tree, dataset, target)
-    if precision + recall == 0:
-        return 0
-    return (2 * precision * recall) / (precision + recall)
