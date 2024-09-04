@@ -24,7 +24,6 @@ def generate_combinations(list, max_range_splits):
         res.append([list[i]])
     return res
             
-#O(n^i)
 def get_splits(dataset, feature, target, max_range_splits):
     min_conditional_entropy = 2
     dataset = dataset.sort_values(by=feature)
