@@ -18,6 +18,12 @@ features = ['time', 'trt', 'age', 'wtkg', 'hemo', 'homo', 'drugs', 'karnof',
 
 test_target = 'Juega'
 test_features = ['Tiempo','Temperatura','Humedad','Viento']
+possible_test_features = {
+    'Tiempo': 3,
+    'Temperatura': 3,
+    'Humedad': 2,
+    'Viento': 2
+}
 
 def entropy(dataset, target):
     values = dataset[target].value_counts()
@@ -86,23 +92,33 @@ def preprocesser(dataset, target, continuous_features):
         dataset = split_dataset(dataset,cont_feature,splits)
     return dataset
 
-def naive_bayes(dataset, target, features, instance, m):
+def naive_bayes(dataset, target, features, feature_range, instance, m):
     prob_si = (dataset[target].value_counts()/dataset.shape[0])['Sí']
     prob_no = (dataset[target].value_counts()/dataset.shape[0])['No']
     
     product_si = product_no = 1
     for feature in features:
-        product_si = product_si * ( dataset.loc[dataset[feature] == instance[feature]][target].value_counts()['Sí'] / dataset[target].value_counts()['Sí'] )
-        product_no = product_no * ( dataset.loc[dataset[feature] == instance[feature]][target].value_counts()['No'] / dataset[target].value_counts()['No'] )
+        examples = dataset.loc[dataset[feature] == instance[feature]][target].value_counts()
+        
+        count_si = examples.get('Sí', 0)
+        count_no = examples.get('No', 0)
+        
+        numerador_si = count_si + m * 1/feature_range[feature]
+        numerador_no = count_no + m * (1 / feature_range[feature])
+            
+        print(f'feature: {feature}, numerador_si: {numerador_si}, numerador_no: {numerador_no}')
+
+        product_si = product_si * ( numerador_si / (dataset[target].value_counts()['Sí'] + m) )
+        product_no = product_no * ( numerador_no / (dataset[target].value_counts()['No'] + m) )
     
-    print(product_si*prob_si, product_no*prob_no)
+    # print(product_si*prob_si, product_no*prob_no)
     if ( (product_si * prob_si) > (product_no * prob_no)):
         return 'Sí'
     else:
         return 'No'
 
 data = {
-    "Tiempo": ["Soleado"],
+    "Tiempo": ["Nuboso"],
     "Temperatura": ["Frío"],
     "Humedad": ["Alta"],
     "Viento": ["Fuerte"]
@@ -110,7 +126,7 @@ data = {
 
 df = pd.DataFrame(data)
 
-print(naive_bayes(test_dataset, test_target, test_features, df.iloc[0], 2))
+print(naive_bayes(test_dataset, test_target, test_features, possible_test_features, df.iloc[0], 2))
 
 
     
