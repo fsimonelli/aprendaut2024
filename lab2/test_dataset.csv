@@ -1,0 +1,15 @@
+#,Tiempo,Temperatura,Humedad,Viento,Juega
+1,Soleado,Caluroso,Alta,Suave,No
+2,Soleado,Caluroso,Alta,Fuerte,No
+3,Nuboso,Caluroso,Alta,Suave,Sí
+4,Lluvioso,Templado,Alta,Suave,Sí
+5,Lluvioso,Frío,Normal,Suave,Sí
+6,Lluvioso,Frío,Normal,Fuerte,No
+7,Nuboso,Frío,Normal,Fuerte,Sí
+8,Soleado,Templado,Alta,Suave,No
+9,Soleado,Frío,Normal,Suave,Sí
+10,Lluvioso,Templado,Normal,Suave,Sí
+11,Soleado,Templado,Normal,Fuerte,Sí
+12,Nuboso,Templado,Alta,Fuerte,Sí
+13,Nuboso,Caluroso,Normal,Suave,Sí
+14,Lluvioso,Templado,Alta,Fuerte,No
