@@ -166,11 +166,16 @@ def preprocesser(dataset, target, continuous_features):
         dataset = split_dataset(dataset,cont_feature,splits)
     return dataset
 
-def test_instances(train_ds, test_ds, m):
+def test_instances(train_ds, test_ds, m, log):
     res = 0
-    for i in range(0,test_ds.shape[0]):
-        if naive_bayes(train_ds,target,features,possible_features_mrs2,test_ds.iloc[i],m) == test_ds.iloc[i][target]:
-            res = res + 1 
+    if log:
+        for i in range(0,test_ds.shape[0]):
+            if naive_bayes_log(train_ds,target,features,possible_features_mrs2,test_ds.iloc[i],m) == test_ds.iloc[i][target]:
+                res = res + 1 
+    else:
+        for i in range(0,test_ds.shape[0]):
+            if naive_bayes(train_ds,target,features,possible_features_mrs2,test_ds.iloc[i],m) == test_ds.iloc[i][target]:
+                res = res + 1 
     return (res/test_ds.shape[0])*100    
 
 def naive_bayes(dataset, target, features, feature_range, instance, m):
@@ -185,15 +190,47 @@ def naive_bayes(dataset, target, features, feature_range, instance, m):
         count_si = examples.get(1, default=0)
         count_no = examples.get(0, default=0)
         
-        numerador_si = count_si + m * 1 / feature_range[feature]
-        numerador_no = count_no + m * 1 / feature_range[feature]
+        numerador_si = (count_si + m) / feature_range[feature]
+        numerador_no = (count_no + m) / feature_range[feature]
 
         # product of sequence
-        product_si = product_si * ( numerador_si / (dataset[target].value_counts()[1] + m) )
-        product_no = product_no * ( numerador_no / (dataset[target].value_counts()[0] + m) )
+        product_si *= ( numerador_si / (dataset[target].value_counts()[1] + m) )
+        product_no *= ( numerador_no / (dataset[target].value_counts()[0] + m) )
+        
+    product_si *= prob_si
+    product_no *= prob_no
     
     # argmax
-    if ( (product_si * prob_si) > (product_no * prob_no)):
+    if ( product_si > product_no):
+        return 1
+    else:
+        return 0
+
+
+def naive_bayes_log(dataset, target, features, feature_range, instance, m):
+    prob_si = (dataset[target].value_counts()/dataset.shape[0])[1]
+    prob_no = (dataset[target].value_counts()/dataset.shape[0])[0]
+    
+    sum_si = sum_no = 0
+    for feature in features:
+        examples = dataset.loc[dataset[feature] == instance[feature]][target].value_counts()
+        
+        # if no instances with a specific target value is found, the get method will return 0
+        count_si = examples.get(1, default=0)
+        count_no = examples.get(0, default=0)
+        
+        numerador_si = (count_si + m) / feature_range[feature]
+        numerador_no = (count_no + m) / feature_range[feature]
+
+        # sum of sequence
+        sum_si += np.log( numerador_si / (dataset[target].value_counts()[1] + m) )
+        sum_no += np.log( numerador_no / (dataset[target].value_counts()[0] + m) )
+        
+    sum_si += np.log(prob_si)
+    sum_no += np.log(prob_no)
+    
+    # argmax
+    if ( sum_si > sum_no):
         return 1
     else:
         return 0
