@@ -1,8 +1,6 @@
 import pandas as pd
 import numpy as np
 import random
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import KBinsDiscretizer
 
 DATASET_FILE = "./lab1_dataset.csv"
 TEST_FILE = "./test_dataset.csv"
@@ -16,6 +14,64 @@ features = ['time', 'trt', 'age', 'wtkg', 'hemo', 'homo', 'drugs', 'karnof',
        'oprior', 'z30', 'zprior', 'preanti', 'race', 'gender', 'str2', 'strat',
        'symptom', 'treat', 'offtrt', 'cd40', 'cd420', 'cd80', 'cd820']
 
+# new dictionary, representing how many values the feature may take
+# variations of max_range_split 2 and 3, because the value of this parameter determines the possible values of a continuous feature after discretization
+# max_range_split_2
+possible_features_mrs2 = {
+    'time': 2,
+    'trt': 4,
+    'age': 2,
+    'wtkg': 2,
+    'hemo': 2,
+    'homo': 2,
+    'drugs': 2,
+    'karnof': 2,
+    'oprior': 2,
+    'z30': 2,
+    'zprior': 2,
+    'preanti': 2,
+    'race': 2,
+    'gender': 2,
+    'str2': 2,
+    'strat': 3,
+    'symptom': 2,
+    'treat': 2,
+    'offtrt': 2,
+    'cd40': 2,
+    'cd420': 2,
+    'cd80': 2,
+    'cd820': 2
+}
+
+# max_range_split_3
+possible_features_mrs3 = {
+    'time': 3,
+    'trt': 4,
+    'age': 3,
+    'wtkg': 3,
+    'hemo': 2,
+    'homo': 2,
+    'drugs': 2,
+    'karnof': 3,
+    'oprior': 2,
+    'z30': 2,
+    'zprior': 2,
+    'preanti': 3,
+    'race': 2,
+    'gender': 2,
+    'str2': 2,
+    'strat': 3,
+    'symptom': 2,
+    'treat': 2,
+    'offtrt': 2,
+    'cd40': 3,
+    'cd420': 3,
+    'cd80': 3,
+    'cd820': 3
+}
+
+
+# testing dataset and new instance
 test_target = 'Juega'
 test_features = ['Tiempo','Temperatura','Humedad','Viento']
 possible_test_features = {
@@ -24,6 +80,18 @@ possible_test_features = {
     'Humedad': 2,
     'Viento': 2
 }
+
+data = {
+    "Tiempo": ["Nuboso"],
+    "Temperatura": ["Frío"],
+    "Humedad": ["Alta"],
+    "Viento": ["Fuerte"]
+}
+
+df = pd.DataFrame(data)
+
+def init():
+    return dataset, features, continuous_features, target, possible_features_mrs2, possible_features_mrs3
 
 def entropy(dataset, target):
     values = dataset[target].value_counts()
@@ -85,6 +153,12 @@ def get_splits(dataset, feature, target, max_range_splits):
             best_splits = split
             
     return (min_conditional_entropy, best_splits)
+    
+def split_into_train_test(dataset, train_size):
+    dataset_size = dataset.shape[0]
+    train_dataset = dataset.iloc[0:int(dataset_size*train_size)]
+    testing_dataset = dataset.iloc[int(dataset_size*train_size):]
+    return train_dataset, testing_dataset
 
 def preprocesser(dataset, target, continuous_features):
     for cont_feature in continuous_features:
@@ -92,41 +166,34 @@ def preprocesser(dataset, target, continuous_features):
         dataset = split_dataset(dataset,cont_feature,splits)
     return dataset
 
+def test_instances(train_ds, test_ds, m):
+    res = 0
+    for i in range(0,test_ds.shape[0]):
+        if naive_bayes(train_ds,target,features,possible_features_mrs2,test_ds.iloc[i],m) == test_ds.iloc[i][target]:
+            res = res + 1 
+    return (res/test_ds.shape[0])*100    
+
 def naive_bayes(dataset, target, features, feature_range, instance, m):
-    prob_si = (dataset[target].value_counts()/dataset.shape[0])['Sí']
-    prob_no = (dataset[target].value_counts()/dataset.shape[0])['No']
+    prob_si = (dataset[target].value_counts()/dataset.shape[0])[1]
+    prob_no = (dataset[target].value_counts()/dataset.shape[0])[0]
     
     product_si = product_no = 1
     for feature in features:
         examples = dataset.loc[dataset[feature] == instance[feature]][target].value_counts()
         
-        count_si = examples.get('Sí', 0)
-        count_no = examples.get('No', 0)
+        # if no instances with a specific target value is found, the get method will return 0
+        count_si = examples.get(1, default=0)
+        count_no = examples.get(0, default=0)
         
-        numerador_si = count_si + m * 1/feature_range[feature]
-        numerador_no = count_no + m * (1 / feature_range[feature])
-            
-        print(f'feature: {feature}, numerador_si: {numerador_si}, numerador_no: {numerador_no}')
+        numerador_si = count_si + m * 1 / feature_range[feature]
+        numerador_no = count_no + m * 1 / feature_range[feature]
 
-        product_si = product_si * ( numerador_si / (dataset[target].value_counts()['Sí'] + m) )
-        product_no = product_no * ( numerador_no / (dataset[target].value_counts()['No'] + m) )
+        # product of sequence
+        product_si = product_si * ( numerador_si / (dataset[target].value_counts()[1] + m) )
+        product_no = product_no * ( numerador_no / (dataset[target].value_counts()[0] + m) )
     
-    # print(product_si*prob_si, product_no*prob_no)
+    # argmax
     if ( (product_si * prob_si) > (product_no * prob_no)):
-        return 'Sí'
+        return 1
     else:
-        return 'No'
-
-data = {
-    "Tiempo": ["Nuboso"],
-    "Temperatura": ["Frío"],
-    "Humedad": ["Alta"],
-    "Viento": ["Fuerte"]
-}
-
-df = pd.DataFrame(data)
-
-print(naive_bayes(test_dataset, test_target, test_features, possible_test_features, df.iloc[0], 2))
-
-
-    
+        return 0
