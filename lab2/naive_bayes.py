@@ -190,8 +190,8 @@ def naive_bayes(dataset, target, features, feature_range, instance, m):
         count_si = examples.get(1, default=0)
         count_no = examples.get(0, default=0)
         
-        numerador_si = (count_si + m) / feature_range[feature]
-        numerador_no = (count_no + m) / feature_range[feature]
+        numerador_si = count_si + (m / feature_range[feature])
+        numerador_no = count_no + (m / feature_range[feature])
 
         # product of sequence
         product_si *= ( numerador_si / (dataset[target].value_counts()[1] + m) )
@@ -219,8 +219,8 @@ def naive_bayes_log(dataset, target, features, feature_range, instance, m):
         count_si = examples.get(1, default=0)
         count_no = examples.get(0, default=0)
         
-        numerador_si = (count_si + m) / feature_range[feature]
-        numerador_no = (count_no + m) / feature_range[feature]
+        numerador_si = count_si + (m / feature_range[feature])
+        numerador_no = count_no + (m / feature_range[feature])
 
         # sum of sequence
         sum_si += np.log( numerador_si / (dataset[target].value_counts()[1] + m) )
