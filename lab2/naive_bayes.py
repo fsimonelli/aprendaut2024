@@ -8,7 +8,7 @@ TEST_FILE = "./test_dataset.csv"
 dataset = pd.read_csv(DATASET_FILE, sep=",")
 test_dataset = pd.read_csv(TEST_FILE, sep=",")
 
-continuous_features = ['time', 'age', 'wtkg', 'karnof', 'preanti', 'cd40', 'cd420', 'cd80', 'cd820']
+continuous_features = ['time', 'age', 'wtkg', 'preanti', 'cd40', 'cd420', 'cd80', 'cd820']
 target = 'cid'
 features = ['time', 'trt', 'age', 'wtkg', 'hemo', 'homo', 'drugs', 'karnof',
        'oprior', 'z30', 'zprior', 'preanti', 'race', 'gender', 'str2', 'strat',
