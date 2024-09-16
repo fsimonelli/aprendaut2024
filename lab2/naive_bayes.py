@@ -14,72 +14,9 @@ features = ['time', 'trt', 'age', 'wtkg', 'hemo', 'homo', 'drugs', 'karnof',
        'oprior', 'z30', 'zprior', 'preanti', 'race', 'gender', 'str2', 'strat',
        'symptom', 'treat', 'offtrt', 'cd40', 'cd420', 'cd80', 'cd820']
 
-# new dictionary, representing how many values the feature may take
-# variations of max_range_split 2 and 3, because the value of this parameter determines the possible values of a continuous feature after discretization
-# max_range_split_2
-possible_features_mrs2 = {
-    'time': 2,
-    'trt': 4,
-    'age': 2,
-    'wtkg': 2,
-    'hemo': 2,
-    'homo': 2,
-    'drugs': 2,
-    'karnof': 2,
-    'oprior': 2,
-    'z30': 2,
-    'zprior': 2,
-    'preanti': 2,
-    'race': 2,
-    'gender': 2,
-    'str2': 2,
-    'strat': 3,
-    'symptom': 2,
-    'treat': 2,
-    'offtrt': 2,
-    'cd40': 2,
-    'cd420': 2,
-    'cd80': 2,
-    'cd820': 2
-}
-
-# max_range_split_3
-possible_features_mrs3 = {
-    'time': 3,
-    'trt': 4,
-    'age': 3,
-    'wtkg': 3,
-    'hemo': 2,
-    'homo': 2,
-    'drugs': 2,
-    'karnof': 3,
-    'oprior': 2,
-    'z30': 2,
-    'zprior': 2,
-    'preanti': 3,
-    'race': 2,
-    'gender': 2,
-    'str2': 2,
-    'strat': 3,
-    'symptom': 2,
-    'treat': 2,
-    'offtrt': 2,
-    'cd40': 3,
-    'cd420': 3,
-    'cd80': 3,
-    'cd820': 3
-}
-
-
 # testing dataset and new instance
 test_target = 'Juega'
 test_features = ['Tiempo','Temperatura','Humedad','Viento']
-possible_test_features = {
-    'Tiempo': 3,
-    'Temperatura': 3,
-    'Humedad': 2,
-    'Viento': 2
-}
 
 data = {
     "Tiempo": ["Nuboso"],
@@ -91,7 +28,7 @@ data = {
 df = pd.DataFrame(data)
 
 def init():
-    return dataset, features, continuous_features, target, possible_features_mrs2, possible_features_mrs3
+    return dataset, features, continuous_features, target
 
 def entropy(dataset, target):
     values = dataset[target].value_counts()
@@ -166,50 +103,17 @@ def preprocesser(dataset, target, continuous_features):
         dataset = split_dataset(dataset,cont_feature,splits)
     return dataset
 
-def test_instances(train_ds, test_ds, m, log):
+def test_instances(X_train, y_train, X_test, y_test, m):
     res = 0
-    if log:
-        for i in range(0,test_ds.shape[0]):
-            if naive_bayes_log(train_ds,target,features,test_ds.iloc[i],m) == test_ds.iloc[i][target]:
-                res = res + 1 
-    else:
-        for i in range(0,test_ds.shape[0]):
-            if naive_bayes(train_ds,target,features,test_ds.iloc[i],m) == test_ds.iloc[i][target]:
-                res = res + 1 
-    return (res/test_ds.shape[0])*100    
-
+    train_ds = X_train.copy()
+    train_ds[target] = y_train
+    for i in range(0, X_test.shape[0]):
+        instance = X_test.iloc[i]
+        if naive_bayes(train_ds, target, features, instance, m) == y_test.iloc[i]:
+            res += 1
+    return (res / X_test.shape[0]) * 100
+        
 def naive_bayes(dataset, target, features, instance, m):
-    dataset_size = dataset.shape[0]
-    prob_1 = dataset[target].value_counts()[1]/dataset_size
-    prob_0 = dataset[target].value_counts()[0]/dataset_size
-    
-    product_1 = prob_1
-    product_0 = prob_0
-    
-    for feature in features:
-        examples = dataset.loc[dataset[feature] == instance[feature]][target].value_counts()
-        
-        # if no instances with a specific target value is found, the get method will return 0
-        count_1 = examples.get(1, default=0)
-        count_0 = examples.get(0, default=0)
-        
-        feature_range = len(dataset[feature].value_counts())
-        
-        numerator_1 = count_1 + (m / feature_range)
-        numerator_0 = count_0 + (m / feature_range)
-
-        # product of sequence
-        product_1 *= ( numerator_1 / (dataset[target].value_counts()[1] + m) )
-        product_0 *= ( numerator_0 / (dataset[target].value_counts()[0] + m) )
-        
-    # argmax
-    if ( product_1 > product_0):
-        return 1
-    else:
-        return 0
-
-
-def naive_bayes_log(dataset, target, features, instance, m):
     
     dataset_size = dataset.shape[0]
     prob_1 = dataset[target].value_counts()[1]/dataset_size
