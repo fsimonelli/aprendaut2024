@@ -170,67 +170,72 @@ def test_instances(train_ds, test_ds, m, log):
     res = 0
     if log:
         for i in range(0,test_ds.shape[0]):
-            if naive_bayes_log(train_ds,target,features,possible_features_mrs2,test_ds.iloc[i],m) == test_ds.iloc[i][target]:
+            if naive_bayes_log(train_ds,target,features,test_ds.iloc[i],m) == test_ds.iloc[i][target]:
                 res = res + 1 
     else:
         for i in range(0,test_ds.shape[0]):
-            if naive_bayes(train_ds,target,features,possible_features_mrs2,test_ds.iloc[i],m) == test_ds.iloc[i][target]:
+            if naive_bayes(train_ds,target,features,test_ds.iloc[i],m) == test_ds.iloc[i][target]:
                 res = res + 1 
     return (res/test_ds.shape[0])*100    
 
-def naive_bayes(dataset, target, features, feature_range, instance, m):
-    prob_si = (dataset[target].value_counts()/dataset.shape[0])[1]
-    prob_no = (dataset[target].value_counts()/dataset.shape[0])[0]
+def naive_bayes(dataset, target, features, instance, m):
+    dataset_size = dataset.shape[0]
+    prob_1 = dataset[target].value_counts()[1]/dataset_size
+    prob_0 = dataset[target].value_counts()[0]/dataset_size
     
-    product_si = product_no = 1
+    product_1 = prob_1
+    product_0 = prob_0
+    
     for feature in features:
         examples = dataset.loc[dataset[feature] == instance[feature]][target].value_counts()
         
         # if no instances with a specific target value is found, the get method will return 0
-        count_si = examples.get(1, default=0)
-        count_no = examples.get(0, default=0)
+        count_1 = examples.get(1, default=0)
+        count_0 = examples.get(0, default=0)
         
-        numerador_si = count_si + (m / feature_range[feature])
-        numerador_no = count_no + (m / feature_range[feature])
+        feature_range = len(dataset[feature].value_counts())
+        
+        numerator_1 = count_1 + (m / feature_range)
+        numerator_0 = count_0 + (m / feature_range)
 
         # product of sequence
-        product_si *= ( numerador_si / (dataset[target].value_counts()[1] + m) )
-        product_no *= ( numerador_no / (dataset[target].value_counts()[0] + m) )
+        product_1 *= ( numerator_1 / (dataset[target].value_counts()[1] + m) )
+        product_0 *= ( numerator_0 / (dataset[target].value_counts()[0] + m) )
         
-    product_si *= prob_si
-    product_no *= prob_no
-    
     # argmax
-    if ( product_si > product_no):
+    if ( product_1 > product_0):
         return 1
     else:
         return 0
 
 
-def naive_bayes_log(dataset, target, features, feature_range, instance, m):
-    prob_si = (dataset[target].value_counts()/dataset.shape[0])[1]
-    prob_no = (dataset[target].value_counts()/dataset.shape[0])[0]
+def naive_bayes_log(dataset, target, features, instance, m):
     
-    sum_si = sum_no = 0
+    dataset_size = dataset.shape[0]
+    prob_1 = dataset[target].value_counts()[1]/dataset_size
+    prob_0 = dataset[target].value_counts()[0]/dataset_size
+    
+    sum_1 = np.log(prob_1)
+    sum_0 = np.log(prob_0)
+    
     for feature in features:
         examples = dataset.loc[dataset[feature] == instance[feature]][target].value_counts()
         
         # if no instances with a specific target value is found, the get method will return 0
-        count_si = examples.get(1, default=0)
-        count_no = examples.get(0, default=0)
+        count_1 = examples.get(1, default=0)
+        count_0 = examples.get(0, default=0)
         
-        numerador_si = count_si + (m / feature_range[feature])
-        numerador_no = count_no + (m / feature_range[feature])
+        feature_range = len(dataset[feature].value_counts())
+        
+        numerator_1 = count_1 + (m / feature_range)
+        numerator_0 = count_0 + (m / feature_range)
 
         # sum of sequence
-        sum_si += np.log( numerador_si / (dataset[target].value_counts()[1] + m) )
-        sum_no += np.log( numerador_no / (dataset[target].value_counts()[0] + m) )
+        sum_1 += np.log( numerator_1 / (dataset[target].value_counts()[1] + m) )
+        sum_0 += np.log( numerator_0 / (dataset[target].value_counts()[0] + m) )
         
-    sum_si += np.log(prob_si)
-    sum_no += np.log(prob_no)
-    
     # argmax
-    if ( sum_si > sum_no):
+    if ( sum_1 > sum_0):
         return 1
     else:
         return 0
