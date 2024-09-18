@@ -76,16 +76,6 @@ class CustomNaiveBayes(BaseEstimator, ClassifierMixin):
 
 def init():
     return dataset, features, continuous_features, target
-
-# Discretize continuous features
-kbins = KBinsDiscretizer(n_bins=2, encode='ordinal', strategy='quantile')
-dataset[continuous_features] = kbins.fit_transform(dataset[continuous_features])
-
-# Feature Selection
-X = dataset.drop([target, 'pidnum'], axis=1)
-y = dataset[target]
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
         
 def naive_bayes(dataset, target, features, instance, m):
     dataset_size = dataset.shape[0]
@@ -126,67 +116,3 @@ def test_instances(X_train, y_train, X_test, y_test, features, m):
         instance = X_test.iloc[i]
         y_pred.append(naive_bayes(train_ds, target, features, instance, m))
     return accuracy_score(y_test, y_pred) * 100
-
-
-# Without feature selection
-accuracy_no_selection = test_instances(X_train, y_train, X_test, y_test, features, 1)
-
-# With feature selection (all features)
-# selector = SelectKBest(chi2, k=2)  # Select all features
-# X_train_selected = selector.fit_transform(X_train, y_train)
-# selected_features = X_train.columns[selector.get_support()]
-
-# Convert the selected features back to DataFrames with feature names
-""" X_train_selected = X_train[selected_features]
-X_test_selected = X_test[selected_features]
-
-accuracy_with_selection = test_instances(X_train_selected, y_train, X_test_selected, y_test, selected_features, 1)
-
-print(f"Accuracy without feature selection: {accuracy_no_selection}%")
-print(f"Accuracy with all features selected: {accuracy_with_selection}%") """
-
-# Define accuracy as the scoring metric (a cambiar, no es lo mejor basarnos en solo accuracy)
-scorer = make_scorer(accuracy_score)
-acc = []
-# misma idea para sin feature selection
-for i in range(0, 23):
-    selector = SelectKBest(chi2, k=i+1)
-    X_train_selected = selector.fit_transform(X_train, y_train)
-    selected_features = X_train.columns[selector.get_support()]
-    model = CustomNaiveBayes(selected_features, m=1)
-    X_selected = X[selected_features]  # Use the features selected earlier
-    scores_with_selection = cross_val_score(model, X_selected, y, cv=5, scoring=scorer)
-    acc.append(np.mean(scores_with_selection))
-
-# Generate a sequence of x values corresponding to the number of features selected
-x_values = range(1, 24)  # From 1 to 23 features
-
-# Plot the accuracy values
-plt.plot(x_values, acc, marker='o', linestyle='-', color='b')
-
-# Add labels and title
-plt.xlabel('Number of Selected Features')
-plt.ylabel('Cross-Validated Accuracy')
-plt.title('Accuracy vs. Number of Selected Features')
-
-# Display the plot
-plt.show()
-    
-    
-""" # Initialize custom Naive Bayes classifier
-model = CustomNaiveBayes(features, m=1)
-
-# Perform 5-fold cross-validation on the dataset without feature selection
-scores_no_selection = cross_val_score(model, X, y, cv=5, scoring=scorer)
-
-print("Cross-validation scores without feature selection:", scores_no_selection)
-print("Average accuracy without feature selection:", np.mean(scores_no_selection))
-
-
-model = CustomNaiveBayes(selected_features, m=1)
-# Perform 5-fold cross-validation on the dataset with feature selection
-X_selected = X[selected_features]  # Use the features selected earlier
-scores_with_selection = cross_val_score(model, X_selected, y, cv=5, scoring=scorer)
-
-print("Cross-validation scores with feature selection:", scores_with_selection)
-print("Average accuracy with feature selection:", np.mean(scores_with_selection)) """
