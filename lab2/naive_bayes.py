@@ -74,10 +74,33 @@ class CustomNaiveBayes(BaseEstimator, ClassifierMixin):
     def __sklearn_clone__(self):
         return self
 
-def init():
-    return dataset, features, continuous_features, target
-        
 def naive_bayes(dataset, target, features, instance, m):
+    dataset_size = dataset.shape[0]
+    prob_1 = dataset[target].value_counts()[1]/dataset_size
+    prob_0 = dataset[target].value_counts()[0]/dataset_size
+    
+    product_1 = prob_1
+    product_0 = prob_0
+    
+    for feature in features:
+        examples = dataset.loc[dataset[feature] == instance[feature]][target].value_counts()
+        
+        # if no instances with a specific target value is found, the get method will return 0
+        count_1 = examples.get(1, default=0)
+        count_0 = examples.get(0, default=0)
+        
+        feature_range = len(dataset[feature].value_counts())
+        
+        numerator_1 = count_1 + (m / feature_range)
+        numerator_0 = count_0 + (m / feature_range)
+
+        # product of sequence
+        product_1 *= ( numerator_1 / (dataset[target].value_counts()[1] + m) )
+        product_0 *= ( numerator_0 / (dataset[target].value_counts()[0] + m) )
+        
+    return (product_0/(product_0 + product_1), product_1/(product_0 + product_1))
+
+def naive_bayes_log(dataset, target, features, instance, m):
     dataset_size = dataset.shape[0]
     prob_1 = dataset[target].value_counts()[1]/dataset_size
     prob_0 = dataset[target].value_counts()[0]/dataset_size
@@ -101,18 +124,4 @@ def naive_bayes(dataset, target, features, instance, m):
         sum_1 += np.log( numerator_1 / (dataset[target].value_counts()[1] + m) )
         sum_0 += np.log( numerator_0 / (dataset[target].value_counts()[0] + m) )
         
-    # argmax
-    if ( sum_1 > sum_0):
-        return 1
-    else:
-        return 0
-
-
-def test_instances(X_train, y_train, X_test, y_test, features, m):
-    y_pred = []
-    train_ds = X_train.copy()
-    train_ds[target] = y_train
-    for i in range(0, X_test.shape[0]):
-        instance = X_test.iloc[i]
-        y_pred.append(naive_bayes(train_ds, target, features, instance, m))
-    return accuracy_score(y_test, y_pred) * 100
+    return (sum_0/(sum_0 + sum_1), sum_1/(sum_0 + sum_1))
