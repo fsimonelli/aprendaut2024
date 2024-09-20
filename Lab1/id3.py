@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import random
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, auc, precision_recall_curve, accuracy_score, precision_score, recall_score, f1_score
+
 
 DATASET_FILE = "./lab1_dataset.csv"
 
@@ -157,7 +159,20 @@ def split_into_train_test(dataset, train_size):
 
 def test_instances(tree, dataset):
     res = 0
+    y_pred = []
     for i in range(0,dataset.shape[0]):
-        if classify_instance(tree, dataset.iloc[i]) == dataset.iloc[i][target]:
-            res = res + 1 
-    return (res/dataset.shape[0])*100
+        instance = dataset.iloc[i]
+        y_pred.append(classify_instance(tree, instance))
+    return y_pred
+
+def metrics(y_pred, y_true):
+    cm = confusion_matrix(y_true, y_pred)
+    print("Confusion Matrix:")
+    print(cm)
+    print("Accuracy: ", accuracy_score(y_true, y_pred))
+    print("Precision: ", precision_score(y_true, y_pred, average='weighted'))
+    print("Recall: ", recall_score(y_true, y_pred,average='weighted'))
+    print("F1: ", f1_score(y_true, y_pred,average='weighted'))
+    return cm
+
+
