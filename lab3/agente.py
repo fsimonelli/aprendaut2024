@@ -142,7 +142,7 @@ pygame.display.set_caption('Lunar Lander')
 agente = AgenteRL(np.prod(NUM_BINS),entorno.action_space.n,1)
 exitos = 0
 recompensa_episodios = []
-num_episodios = 00
+num_episodios = 1000
 for i in range(num_episodios):
     print("Episodio:",i)
     recompensa = ejecutar_episodio(agente)
