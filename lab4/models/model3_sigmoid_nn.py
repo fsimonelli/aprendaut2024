@@ -4,7 +4,7 @@ import torch.nn as nn
 class SigmoidNN(nn.Module):
     def __init__(self, input_size):
         super(SigmoidNN, self).__init__()
-        self.linear = nn.Linear(input_size, 1)  # Salida única para probabilidad
+        self.linear = nn.Linear(input_size, 1)
 
     def forward(self, x):
         return torch.sigmoid(self.linear(x))

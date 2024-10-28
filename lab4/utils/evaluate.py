@@ -8,7 +8,7 @@ def evaluate_model(model, X_test, y_test):
     
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred, zero_division=1, average='binary')
-    recall = recall_score(y_test, y_pred, zero_division=1, average='binary')
-    f1 = f1_score(y_test, y_pred, zero_division=1, average='binary')
+    precision = precision_score(y_test, y_pred, average='weighted')
+    recall = recall_score(y_test, y_pred, average='weighted')
+    f1 = f1_score(y_test, y_pred, average='weighted')
     return accuracy, precision, recall, f1
