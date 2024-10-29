@@ -13,10 +13,8 @@ class SimpleLinearNN(nn.Module):
         self.eval()
         
         with torch.no_grad():
-            # Pasar los datos a través del modelo
             logits = self.forward(x)
             
-            # Obtener la clase con la probabilidad más alta
             _, predicted_classes = torch.max(logits, 1)
         
         return predicted_classes
